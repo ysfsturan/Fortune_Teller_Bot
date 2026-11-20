@@ -1,51 +1,100 @@
-import os
-from dotenv import load_dotenv
-from google import genai
-from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+"""Fortune Teller Bot giriş noktası (`python main.py`)."""
 
-load_dotenv()
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+from __future__ import annotations
 
-client = genai.Client(api_key=GEMINI_API_KEY)
+import argparse
+import logging
+import sys
+from typing import Optional
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    mesaj = (
-        "🔮 Hoş geldin! Ben senin kişisel mistik falcınım.\n\n"
-        "Bana burcunu, aklındaki bir soruyu veya sadece 'Bana bir fal bak' yaz, "
-        "yıldızların senin için ne söylediğini anlatayım."
+from src.bot import FortuneTellerBot
+from src.config import ConfigError, load_config
+from src.gemini_client import GeminiError, GeminiFortuneClient
+from src.server import run_once, run_polling, run_webhook
+from src.telegram_client import TelegramClient
+
+
+def _configure_logging() -> None:
+    if hasattr(sys.stdout, "reconfigure"):
+        try:
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
     )
-    await update.message.reply_text(mesaj)
 
-async def fal_bak(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_message = update.message.text
 
-    await context.bot.send_chat_action(chat_id=update.effective_chat.id, action='typing')
+def build_arg_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="Fortune Teller Bot — Yapay zekâ destekli çok modlu Telegram fal botu"
+    )
+    parser.add_argument(
+        "--mode",
+        choices=["auto", "webhook", "polling", "once"],
+        default=None,
+        help="Çalıştırma kipini seçer (varsayılan: BOT_MODE veya ortamdan otomatik).",
+    )
+    parser.add_argument(
+        "--once",
+        action="store_true",
+        help="Bekleyen mesajları tek seferde işleyip çıkar (--mode once ile aynıdır).",
+    )
+    parser.add_argument(
+        "--test-gemini",
+        action="store_true",
+        help="Telegram başlatmadan Gemini Flash model keşfini ve örnek yorumu test eder.",
+    )
+    return parser
+
+
+def main(argv: Optional[list[str]] = None) -> int:
+    _configure_logging()
+    logger = logging.getLogger(__name__)
+    args = build_arg_parser().parse_args(argv)
 
     try:
-        prompt = f"Sen eğlenceli, biraz gizemli, hafif samimi ve bilge bir astroloji/fal botusun. Kullanıcının şu mesajına göre ona sanki kahve falı ya da tarot bakıyormuş gibi akıcı, etkileyici ve çok uzun olmayan bir yanıt ver: '{user_message}'"
-
-        response = client.models.generate_content(
-            model='gemini-3-flash-preview',
-            contents=prompt
+        config = load_config(
+            require_telegram=not args.test_gemini,
+            require_gemini=True,
         )
-        await update.message.reply_text(response.text)
-        
-    except Exception as e:
-        await update.message.reply_text("✨ Yıldızlar şu an biraz puslu, enerjiyi tam alamadım. Lütfen birazdan tekrar dene!")
-        print(f"Hata Logu: {e}")
+    except ConfigError as exc:
+        logger.error("Yapılandırma hatası: %s", exc)
+        return 2
 
-def main():
-    # Botu başlatıyoruz
-    app = Application.builder().token(TELEGRAM_TOKEN).build()
+    gemini = GeminiFortuneClient(
+        api_key=config.gemini_api_key,
+        preferred_model=config.gemini_model,
+    )
 
-    # Komutları ve mesajları dinleyen algılayıcılar
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, fal_bak))
+    if args.test_gemini:
+        try:
+            used_model, discovered = gemini.test_connection()
+            print(f"Gemini test başarılı! Kullanılan model: {used_model}")
+            if discovered:
+                print(f"Keşfedilen aktif Flash modeller: {', '.join(discovered)}")
+            return 0
+        except GeminiError as exc:
+            logger.error("Gemini test başarısız: %s", exc)
+            return 1
 
-    print("🔮 Fal Botu uyandı ve Telegram'da mesaj bekliyor...")
-    app.run_polling()
+    telegram = TelegramClient(config.telegram_token)
+    bot = FortuneTellerBot(config=config, telegram_client=telegram, gemini_client=gemini)
 
-if __name__ == '__main__':
-    main()
+    selected_mode = "once" if args.once else (args.mode or config.resolved_mode)
+    logger.info("Çalıştırma kipi: %s", selected_mode)
+
+    if selected_mode == "once":
+        run_once(bot)
+        return 0
+    if selected_mode == "webhook":
+        run_webhook(bot)
+        return 0
+    run_polling(bot)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,86 @@
+name: Fortune Teller Bot Runner
+
+on:
+  schedule:
+    # Render Free Web Service uykuya geçmesin veya bağımsız Actions kipinde mesajlar işlensin diye 14 dakikada bir
+    - cron: '*/14 * * * *'
+
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Çalıştırma kipi"
+        required: false
+        type: choice
+        default: auto
+        options:
+          - auto
+          - health_ping
+          - process_once
+          - test_gemini
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fortune-teller-runner
+  cancel-in-progress: false
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Run selected mode
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+          TIMEZONE: ${{ vars.TIMEZONE }}
+          ALLOWED_CHAT_IDS: ${{ vars.ALLOWED_CHAT_IDS }}
+          USER_COOLDOWN_SECONDS: ${{ vars.USER_COOLDOWN_SECONDS }}
+          RENDER_URL: ${{ vars.RENDER_URL }}
+          ENABLE_ACTIONS_POLLING: ${{ vars.ENABLE_ACTIONS_POLLING }}
+          INPUT_MODE: ${{ inputs.mode }}
+        run: |
+          MODE="${INPUT_MODE:-auto}"
+          TG_KEY="${TELEGRAM_TOKEN:-$BOT_TOKEN}"
+
+          if [ "$MODE" = "test_gemini" ]; then
+            python -m pip install -r requirements.txt
+            python main.py --test-gemini
+            exit 0
+          fi
+
+          if [ "$MODE" = "health_ping" ] || { [ "$MODE" = "auto" ] && [ -n "$RENDER_URL" ]; }; then
+            if [ -z "$RENDER_URL" ]; then
+              echo "::error::RENDER_URL Repository Variable tanımlı değil."
+              exit 1
+            fi
+            PING_TARGET="${RENDER_URL%/}/health"
+            echo "Render keep-alive ping gönderiliyor: $PING_TARGET"
+            curl -fsS --max-time 25 --retry 2 "$PING_TARGET"
+            echo ""
+            exit 0
+          fi
+
+          if [ "$MODE" = "process_once" ] || { [ "$MODE" = "auto" ] && [ "$ENABLE_ACTIONS_POLLING" = "true" ]; }; then
+            if [ -z "$TG_KEY" ] || [ -z "$GEMINI_API_KEY" ]; then
+              echo "::error::TELEGRAM_TOKEN (veya BOT_TOKEN) ve GEMINI_API_KEY Secrets içinde tanımlı olmalı."
+              exit 1
+            fi
+            python -m pip install -r requirements.txt
+            python main.py --once
+            exit 0
+          fi
+
+          echo "Ne RENDER_URL ne de ENABLE_ACTIONS_POLLING=true ayarlı; webhook ile çakışmamak için pas geçildi."

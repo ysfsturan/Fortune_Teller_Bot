@@ -6,158 +6,140 @@
 
 # 🔮 Fortune Teller Bot
 
-![Python](https://img.shields.io/badge/Python-3.9%2B-blue?style=for-the-badge&logo=python)
-![Gemini AI](https://img.shields.io/badge/Google%20Gemini-3%20Flash-orange?style=for-the-badge&logo=google)
-![Telegram](https://img.shields.io/badge/Telegram-Bot-2CA5E0?style=for-the-badge&logo=telegram)
-![Render](https://img.shields.io/badge/Render-Cloud%20Hosting-46E3B7?style=for-the-badge&logo=render)
+![Python](https://img.shields.io/badge/Python-3.12%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Gemini AI](https://img.shields.io/badge/Google%20Gemini-Auto%20Flash%20%2B%20Vision-orange?style=for-the-badge&logo=google)
+![Telegram](https://img.shields.io/badge/Telegram-Webhook%20%26%20Polling-26A5E4?style=for-the-badge&logo=telegram)
+![Render](https://img.shields.io/badge/Render-Web%20Service%20Blueprint-46E3B7?style=for-the-badge&logo=render)
 
-**Fortune Teller Bot** is an AI-powered chatbot that provides users with personalized mystical readings via Telegram, combining the flavors of astrology, coffee cup reading, and tarot.
+**Fortune Teller Bot** is an AI-powered multimodal Telegram bot combining real Tarot spreads, multimodal **coffee cup photo reading**, daily zodiac readings, dream interpretation, and Yes/No oracle guidance using **Google Gemini Flash** (with automatic model discovery & fallback).
 
-Unlike standard template sentences, this bot uses the speed and intelligence of the **Google Gemini 3 Flash** model to generate instant, fluent, and highly contextual responses to user questions in a "fortune teller" persona.
+## ✨ What's New (v2.0)
 
-## 🚀 Features
-
-* **🎭 Realistic Fortune Teller Persona:** It doesn't just give horoscope readings; it approaches your questions, a specific name, or a topic you want to vent about with a mystical tone.
-* **⚡ High Speed & Low Latency:** Thanks to Google's low-latency focused Gemini 3 Flash model and asynchronous (async) Telegram infrastructure, it replies to messages within seconds.
-* **☁️ 24/7 Uninterrupted Service:** Since it is hosted on the Render cloud server, it remains continuously online even if your local computer is turned off.
-
----
-
-## ⚙️ How It Works
-
-1. **Interaction:** The user contacts the bot by writing a direct question via Telegram.
-2. **Prompt Engineering:** The user's message is combined with a special system command in the background that assigns the bot the identity of a "wise figure who blends mystery, sincerity, and astrological foresight."
-3. **AI Generation:** The Gemini 3 Flash API processes this data and creates an impressive text as if looking into a coffee cup or reading tarot cards.
-4. **Fast Delivery:** The generated response instantly drops into the user's Telegram chat.
+- ☕ **Coffee Cup Photo Reading (Gemini Vision):** Send a photo of your Turkish coffee cup and get an interpretation based on the visible shapes in the grounds.
+- 🃏 **Real 3-Card Tarot Spread (`/tarot`):** Draws 3 unique Major Arcana cards (Past / Present / Future, Upright or Reversed) and weaves them into a personalized reading.
+- 🌙 **Daily Tarot Card (`/gunun_karti`):** Deterministic daily card tied to each user and calendar day.
+- ✨ **12 Zodiac Signs & Buttons (`/burc`):** Interactive keyboard for all 12 signs + Turkish/English alias support.
+- ❓ **Yes/No Pendulum (`/evethayir`)** & 💭 **Dream Interpretation (`/ruya`)** with short-term conversation memory (`/sifirla` to reset).
+- 🌐 **Render Free Web Service Ready (`Webhook` + `/health`):** Bound to `$PORT` (`GET /health` returns `200 OK`) with secret-token verification on `/webhook`, plus optional **GitHub Actions Keep-Alive** (`RENDER_URL`) or standalone `--once` runner (`ENABLE_ACTIONS_POLLING=true`).
+- 🔄 **Auto Flash Model Discovery & Failover:** Queries active `Gemini Flash` models via REST API (zero heavy SDK dependencies) and seamlessly falls back if a model returns 404/429.
 
 ---
 
-## 🛠️ Installation
+## 🛠️ Quick Setup (Render 24/7 or GitHub Actions Free)
 
-This project is optimized to run 24/7 on cloud platforms like **Render.com**. You can follow the steps below to set up your own bot:
+### Option A — Deploy 24/7 on Render (Recommended)
+1. Fork this repository to your GitHub account.
+2. On [Render.com](https://render.com), choose **New → Blueprint** (or **New → Web Service** using `render.yaml` / `python main.py`).
+3. Add **Environment Variables**:
+   - `TELEGRAM_TOKEN` = your bot token from [@BotFather](https://t.me/BotFather)
+   - `GEMINI_API_KEY` = your key from [Google AI Studio](https://aistudio.google.com/app/apikey)
+4. *(Optional anti-sleep keep-alive):* In your GitHub repo **Settings → Secrets and variables → Actions → Variables**, add `RENDER_URL` = `https://your-service.onrender.com` so the included `Fortune Teller Bot Runner` workflow pings `/health` every 14 minutes.
 
-### 1. Fork the Project 🍴
-Add this project to your own GitHub account by clicking the **Fork** button in the top right corner of the page.
+### Option B — Run Free via GitHub Actions Only (No Render Needed)
+1. In your GitHub repo **Settings → Secrets and variables → Actions**:
+   - **Secrets:** `TELEGRAM_TOKEN` and `GEMINI_API_KEY`
+   - **Variables:** `ENABLE_ACTIONS_POLLING` = `true`
+2. Enable workflows under **Actions**; pending Telegram messages are processed automatically on schedule or anytime via **Run workflow**.
 
-### 2. Get the Necessary Keys 🔑
-* **Google Gemini API Key:** Get your free key from [Google AI Studio](https://aistudio.google.com/app/apikey).
-* **Telegram Bot Token:** Start a chat with [@BotFather](https://t.me/BotFather) on Telegram, create your own bot using the `/newbot` command, and copy the provided HTTP API Token.
-
-### 3. Deploy on Render ☁️
-1. Log in to [Render.com](https://render.com) with your GitHub account.
-2. Follow **New > Web Service** and select your forked repository.
-3. Fill in the settings as follows:
-   * **Runtime:** `Python 3`
-   * **Build Command:** `pip install -r requirements.txt`
-   * **Start Command:** `python main.py`
-4. Go to the **Environment Variables** section at the bottom of the page and add your secret keys:
-   * `TELEGRAM_TOKEN` = (The token you got from BotFather)
-   * `GEMINI_API_KEY` = (The key you got from Google AI Studio)
-5. Start your bot by clicking the **Create Web Service** button!
-
-> **💻 Local Installation:** If you want to test the bot on your own computer; you can clone the repo and install the libraries with the `pip install -r requirements.txt` command, create a `.env` file in the root directory, paste your tokens/keys inside, and run it with the `python main.py` command.
-
----
-
-## 📞 Contact & Support
-
-If you notice a bug or have a feature request regarding the project, please don't hesitate to open an **Issue** on GitHub.
-
-<div align="center">
+### Option C — Local / Docker
+```bash
+python -m venv .venv
+# Windows: .venv\Scripts\Activate.ps1 | Linux/macOS: source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env  # fill TELEGRAM_TOKEN and GEMINI_API_KEY
+python main.py
+```
 
 ---
 
-## ⚠️ Legal Disclaimer
-
-This bot is designed entirely for entertainment and motivation purposes using artificial intelligence language models. 
-* **Accuracy:** The generated content relies on random AI algorithms and has no function/certainty of reading or predicting the future.
-* **Not Advisory:** The answers provided by the bot do not substitute for psychological, financial, medical, or legal advice. Please consult experts for your serious decisions.
-
----
-
-<i>Made with ❤️ by Yusuf Sami Turan</i><br><br>
-<a href="https://www.linkedin.com/in/yusufsamituran">
-  <img src="https://img.shields.io/badge/LinkedIn-Connect-blue?style=for-the-badge&logo=linkedin&logoColor=white" alt="LinkedIn">
-</a>
-</div>
-
-<br><br>
+<br>
 
 ---
 
 # 🇹🇷 Türkçe
 
-# 🔮 Fortune Teller Bot
+# 🔮 Fortune Teller Bot (Yapay Zekâlı Telegram Falcısı)
 
-![Python](https://img.shields.io/badge/Python-3.9%2B-blue?style=for-the-badge&logo=python)
-![Gemini AI](https://img.shields.io/badge/Google%20Gemini-3%20Flash-orange?style=for-the-badge&logo=google)
-![Telegram](https://img.shields.io/badge/Telegram-Bot-2CA5E0?style=for-the-badge&logo=telegram)
-![Render](https://img.shields.io/badge/Render-Cloud%20Hosting-46E3B7?style=for-the-badge&logo=render)
+![Python](https://img.shields.io/badge/Python-3.12%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Gemini AI](https://img.shields.io/badge/Google%20Gemini-Otomatik%20Flash%20%2B%20Vision-orange?style=for-the-badge&logo=google)
+![Telegram](https://img.shields.io/badge/Telegram-Webhook%20%26%20Polling-26A5E4?style=for-the-badge&logo=telegram)
+![Render](https://img.shields.io/badge/Render-Web%20Service%20Blueprint-46E3B7?style=for-the-badge&logo=render)
 
-**Fortune Teller Bot**, kullanıcılara Telegram üzerinden astroloji, kahve falı ve tarot tadında kişiselleştirilmiş mistik yorumlar yapan yapay zeka destekli bir sohbet botudur. 
-
-Standart kalıp cümlelerin aksine, bu bot **Google Gemini 3 Flash** modelinin hızını ve zekasını kullanarak, kullanıcının sorduğu sorulara anında, akıcı ve tamamen bağlama uygun "falcı" personasıyla yanıtlar üretir.
+**Fortune Teller Bot**, Telegram üzerinden **kahve fincanı fotoğrafı yorumlama**, gerçek 3 kartlı Tarot açılımı, günlük burç yorumları, rüya tabiri ve Evet/Hayır sarkaç yanıtları sunan yapay zekâ destekli çok modlu kişisel fal asistanıdır.
 
 ## 🚀 Özellikler
 
-* **🎭 Gerçekçi Falcı Personası:** Sadece burç yorumu yapmaz; aklınızdaki bir soruya, bir isme veya dertleşmek istediğiniz bir konuya mistik bir üslupla yaklaşır.
-* **⚡ Yüksek Hız & Düşük Gecikme:** Google'ın low-latency odaklı Gemini 3 Flash modeli ve asenkron (async) Telegram altyapısı sayesinde mesajlara saniyeler içinde dönüş yapar.
-* **☁️ 7/24 Kesintisiz Hizmet:** Render bulut sunucusu üzerinde barındırıldığı için yerel bilgisayarınız kapalı olsa bile sürekli çevrimiçidir.
+- ☕ **Fotoğrafla Kahve Falı (Gemini Vision):** Kapattığın kahve fincanının fotoğrafını doğrudan bota gönder; telvedeki sembolleri (yol, kalp, kuş, anahtar vb.) inceleyip yorumlasın.
+- 🃏 **3 Kartlı Tarot Açılımı (`/tarot`):** 22 Büyük Arkana destesinden **Geçmiş / Şimdi / Gelecek** için Düz veya Ters 3 kart çekip soruna özel yorum yazar.
+- 🌙 **Günün Kartı (`/gunun_karti`):** Sana ve bugüne özel gün boyu tutarlı tarot kartı enerjisi verir.
+- ✨ **12 Burç Yorumu (`/burc`):** Etkileşimli burç butonlarıyla tek dokunuşta günlük astroloji rehberliği sağlar.
+- ❓ **Evet / Hayır Sarkaçı (`/evethayir`) & 💭 Rüya Tabiri (`/ruya`):** Aklındaki sorular ve rüyalar için hızlı, kısa sohbet hafızalı (`/sifirla` ile temizlenir) yanıtlar sunar.
+- 🔄 **Otomatik Aktif Gemini Flash Keşfi:** Sabit eski model adlarına takılı kalmaz; Google AI üzerinden güncel `Flash` modellerini otomatik bulur, `404`/`429` durumunda sıradaki modele otomatik geçer.
+- ☁️ **Render Webhook + Sağlık Ucu (`/health`) & Actions Keep-Alive:** Render Free Web Service kapanmasın diye `$PORT` üzerinde `/health` ve güvenlik gizli anahtarlı (`/webhook`) HTTP sunucusu açar.
 
 ---
 
-## ⚙️ Nasıl Çalışır?
+## 💬 Telegram Komutları
 
-1. **Etkileşim:** Kullanıcı Telegram üzerinden bota direkt bir soru yazarak ulaşır.
-2. **Prompt Mühendisliği:** Kullanıcının mesajı, arka planda bota "gizemi, samimiyeti ve astrolojik öngörüleri harmanlayan bir bilge" kimliği yükleyen özel bir sistem komutuyla birleştirilir.
-3. **Yapay Zeka Üretimi:** Gemini 3 Flash API, bu verileri işleyerek sanki bir fincan kahveye veya tarot kartlarına bakıyormuşçasına etkileyici bir metin oluşturur.
-4. **Hızlı Teslimat:** Üretilen yanıt anında kullanıcının Telegram sohbetine düşer.
-
----
-
-## 🛠️ Kurulum
-
-Bu proje, **Render.com** gibi bulut platformlarında 7/24 çalışacak şekilde optimize edilmiştir. Kendi botunuzu kurmak için aşağıdaki adımları izleyebilirsiniz:
-
-### 1. Projeyi Forklayın 🍴
-Sayfanın sağ üst köşesindeki **Fork** butonuna tıklayarak bu projeyi kendi GitHub hesabınıza ekleyiniz.
-
-### 2. Gerekli Anahtarları Edinin 🔑
-* **Google Gemini API Key:** [Google AI Studio](https://aistudio.google.com/app/apikey) adresinden ücretsiz anahtarınızı alınız.
-* **Telegram Bot Token:** Telegram'da [@BotFather](https://t.me/BotFather) ile sohbet başlatıp `/newbot` komutuyla kendi botunuzu oluşturun ve size verilen HTTP API Token'ı kopyalayınız.
-
-### 3. Render Üzerinde Canlıya Alın ☁️
-1. [Render.com](https://render.com) adresine GitHub hesabınızla giriş yapın.
-2. **New > Web Service** adımlarını izleyerek forklayıp oluşturduğunuz deponuzu seçin.
-3. Ayarları şu şekilde doldurun:
-   * **Runtime:** `Python 3`
-   * **Build Command:** `pip install -r requirements.txt`
-   * **Start Command:** `python main.py`
-4. Sayfanın altındaki **Environment Variables** bölümüne giderek gizli anahtarlarınızı ekleyin:
-   * `TELEGRAM_TOKEN` = (BotFather'dan aldığınız token)
-   * `GEMINI_API_KEY` = (Google AI Studio'dan aldığınız anahtar)
-5. **Create Web Service** butonuna basarak botunuzu başlatın!
-
-> **💻 Yerel (Local) Kurulum:** Botu kendi bilgisayarınızda denemek isterseniz; repoyu klonlayıp `pip install -r requirements.txt` komutuyla kütüphaneleri kurabilir, ana dizinde `.env` dosyası oluşturarak aldığınız tokenleri/anahtarları içine yazdıktan sonra `python main.py` komutuyla çalıştırabilirsiniz.
+| Komut | Açıklama |
+| --- | --- |
+| `/start` | Botu başlatır ve etkileşimli ana menüyü açar |
+| `/tarot [soru]` | Geçmiş / Şimdi / Gelecek 3 kartlı Tarot açılımı yapar |
+| `/gunun_karti` (veya `/kart`) | Bugüne özel tarot kartını çeker |
+| `/kahve` *(veya doğrudan fotoğraf)* | Kahve fincanı fotoğrafıyla görsel fal yorumu yapar |
+| `/burc` (veya `/burc akrep`) | Burç seçim menüsünü açar veya doğrudan yorum getirir |
+| `/evethayir <soru>` | Mistik sarkaçtan Evet / Hayır yanıtı alır |
+| `/ruya <rüya>` | Rüyandaki sembolleri yorumlar |
+| `/sifirla` | Sohbet geçmişini temizler |
+| `/yardim` | Kullanım rehberini gösterir |
 
 ---
 
-## 📞 İletişim & Destek
+## 🛠️ Kurulum ve Tekrar Aktifleştirme
 
-Proje ile ilgili bir hata fark ederseniz veya özellik isteğiniz varsa lütfen GitHub üzerinden bir **Issue** açmaktan çekinmeyin.
+### Yöntem 1: Render.com Üzerinde 7/24 Çalıştırma (Önerilen)
+1. Bu depoyu hesabına Forkla veya doğrudan bağla.
+2. [Render.com](https://render.com) üzerinde **New → Web Service** (veya repo kökündeki [`render.yaml`](render.yaml) ile **Blueprint**) oluştur:
+   - **Build Command:** `pip install -r requirements.txt`
+   - **Start Command:** `python main.py`
+   - **Health Check Path:** `/health`
+3. **Environment Variables** alanına şu iki gizli bilgiyi ekle:
+   - `TELEGRAM_TOKEN` = [@BotFather](https://t.me/BotFather) üzerinden aldığın Telegram Bot Token
+   - `GEMINI_API_KEY` = [Google AI Studio](https://aistudio.google.com/app/apikey) üzerinden aldığın Gemini API Anahtarı
+4. Servis ayağa kalktığında `RENDER_EXTERNAL_URL` otomatik algılanır ve bot **Webhook** kipine geçip anında yanıt verir.
+5. **Uykuya Geçmesini Önleme (Keep-Alive):** GitHub deponda **Settings → Secrets and variables → Actions → Variables** içine `RENDER_URL` = `https://senin-servisin.onrender.com` eklersen, GitHub Actions her 14 dakikada bir `/health` adresine ping atarak servisi uyanık tutar.
 
-<div align="center">
+### Yöntem 2: Sadece GitHub Actions İle Ücretsiz Çalıştırma (Sunucusuz)
+Render kullanmak istemezsen GitHub Actions üzerinde de çalıştırabilirsin:
+1. GitHub deponda **Settings → Secrets and variables → Actions** altına:
+   - **Secrets:** `TELEGRAM_TOKEN`, `GEMINI_API_KEY`
+   - **Variables:** `ENABLE_ACTIONS_POLLING` = `true`
+2. **Actions → Fortune Teller Bot Runner** sekmesinden workflow'u etkinleştir (`python main.py --once` ile bekleyen mesajları düzenli olarak yanıtlar).
+
+### Yöntem 3: Kendi Bilgisayarında / Docker
+```bash
+python -m venv .venv
+# Windows PowerShell: .venv\Scripts\Activate.ps1
+# Linux/macOS: source .venv/bin/activate
+pip install -r requirements.txt
+copy .env.example .env   # TELEGRAM_TOKEN ve GEMINI_API_KEY ekle
+python main.py
+```
+
+Testleri çalıştırmak için:
+```bash
+python -m unittest discover -s tests -v
+```
 
 ---
 
 ## ⚠️ Yasal Uyarı
 
-Bu bot, tamamen eğlence ve motivasyon sağlamak amacıyla yapay zeka dil modelleri kullanılarak tasarlanmıştır. 
-* **Kesinlik:** Üretilen içerikler rastgele yapay zeka algoritmalarına dayanır ve geleceği okuma, tahmin etme gibi bir işlevi/kesinliği yoktur.
-* **Tavsiye Niteliği Taşımaz:** Bot tarafından verilen cevaplar; psikolojik, finansal, medikal veya hukuki bir tavsiye yerine geçmez. Ciddi kararlarınızda lütfen uzmanlara danışınız.
+Bu bot eğlence ve kişisel farkındalık amacıyla yapay zekâ dil ve görsel modelleri kullanılarak geliştirilmiştir; üretilen yanıtlar tıbbi, hukuki, psikolojik veya finansal tavsiye niteliği taşımaz.
 
 ---
 
+<div align="center">
 <i>Made with ❤️ by Yusuf Sami Turan</i><br><br>
 <a href="https://www.linkedin.com/in/yusufsamituran">
   <img src="https://img.shields.io/badge/LinkedIn-Connect-blue?style=for-the-badge&logo=linkedin&logoColor=white" alt="LinkedIn">
